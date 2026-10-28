@@ -1,0 +1,28 @@
+name : workfloe-dispach
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+         description: "select target environment"
+         required: true
+         default: "staging"
+         type: choice
+       version:
+         description: "se;ect-version"
+         required: false
+         type: string
+         default: "latest"
+       dry-run:
+          description: "proceeding dryrun"
+          type: boolean
+          required: false
+    jobs:
+      manual-job:
+         steps:
+           - name: manualhjob
+             run: |
+              echo " environemnt : ${{inputs.envronment}}"
+              echo " dry-run: ${{input.dry-run}}"
+              echo" version: ${{input.version}}"
+        
+      
