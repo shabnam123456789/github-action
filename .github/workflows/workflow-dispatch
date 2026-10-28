@@ -5,13 +5,13 @@ on:
       environment:
          description: "select target environment"
          required: true
-         default: "staging"
+         default: 'staging'
          type: choice
        version:
          description: "se;ect-version"
          required: false
          type: string
-         default: "latest"
+         default: 'latest'
        dry-run:
           description: "proceeding dryrun"
           type: boolean
