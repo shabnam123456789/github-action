@@ -2,7 +2,7 @@
 # Adds a "Run workflow" button to the Actions tab.
 # Great for deployments, one-off tasks, or letting testers pick options.
 
-name: 05 - Manual Run With Inputs
+name: 05 - Manual Run With Input
 
 on:
   workflow_dispatch:
