@@ -2,7 +2,7 @@ name: onpushbranchmain
 on:
   push:
     branches: 
-      - main
+      
       - **.release
     paths:
       - 'src/**'
