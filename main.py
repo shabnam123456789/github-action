@@ -1,1 +1,1 @@
-Echo"enter name:"
+Echo"enter name::"
