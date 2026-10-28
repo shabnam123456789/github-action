@@ -14,7 +14,7 @@ on:
         type: choice          # renders a dropdown in the UI
         options:
           - staging
-          - production
+          - production1
       version:
         description: 'Version to deploy (e.g. 1.4.0)'
         required: false
