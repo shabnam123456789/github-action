@@ -1,0 +1,10 @@
+name: CI
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: building 
+        run: echo "hello world"
+  
+
