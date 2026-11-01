@@ -1,0 +1,73 @@
+name: Docker Build and Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select deployment environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+      tag_type:
+        description: "Select Docker image tag"
+        required: true
+        default: "build-number"
+        type: choice
+        options:
+          - build-number
+          - commit-sha
+          - latest
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List repository files
+        run: |
+          pwd
+          ls -lrth
+
+      - name: Generate image tag
+        id: image-tag
+        shell: bash
+        run: |
+          if [ "${{ inputs.tag_type }}" = "build-number" ]; then
+            TAG="${{ github.run_number }}"
+          elif [ "${{ inputs.tag_type }}" = "commit-sha" ]; then
+            TAG="${GITHUB_SHA::7}"
+          else
+            TAG="latest"
+          fi
+
+          echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          echo "Environment = ${{ inputs.environment }}"
+          echo "Image Tag   = $TAG"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t myapp:${{ env.IMAGE_TAG }} \
+            .
+
+      - name: Check Docker images
+        run: |
+          docker images
+
+      - name: Run Docker container
+        run: |
+          docker run -d \
+            --name myapp-container \
+            -p 8080:8080 \
+            -e APP_ENV=${{ inputs.environment }} \
+            myapp
