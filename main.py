@@ -1,1 +1,0 @@
-Echo"enter name::"
