@@ -4,24 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Select deployment environment"
+        description: "Select environment"
         required: true
-        default: "dev"
+        default: dev
         type: choice
         options:
           - dev
           - qa
           - prod
-
-      tag_type:
-        description: "Select Docker image tag"
-        required: true
-        default: "build-number"
-        type: choice
-        options:
-          - build-number
-          - commit-sha
-          - latest
 
 jobs:
   build:
@@ -31,43 +21,43 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: List repository files
+      - name: Generate Image Tag
         run: |
-          pwd
-          ls -lrth
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_TAG="${{ github.run_number }}-$SHORT_SHA"
 
-      - name: Generate image tag
-        id: image-tag
-        shell: bash
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+          echo "Generated image tag: $IMAGE_TAG"
+
+      - name: Build Docker Image
         run: |
-          if [ "${{ inputs.tag_type }}" = "build-number" ]; then
-            TAG="${{ github.run_number }}"
-          elif [ "${{ inputs.tag_type }}" = "commit-sha" ]; then
-            TAG="${GITHUB_SHA::7}"
-          else
-            TAG="latest"
-          fi
+          echo "Building myapp:${{ env.IMAGE_TAG }}"
+          docker build -t myapp:${{ env.IMAGE_TAG }} .
 
-          echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
-          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
-
-          echo "Environment = ${{ inputs.environment }}"
-          echo "Image Tag   = $TAG"
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t myapp:${{ env.IMAGE_TAG }} \
-            .
-
-      - name: Check Docker images
+      - name: Check Docker Images
         run: |
           docker images
 
-      - name: Run Docker container
+      - name: Run Docker Container
         run: |
+          echo "Running myapp:${{ env.IMAGE_TAG }}"
+
           docker run -d \
             --name myapp-container \
             -p 8080:8080 \
             -e APP_ENV=${{ inputs.environment }} \
-            myapp
+            myapp:${{ env.IMAGE_TAG }}
+
+      - name: Check Running Container
+        run: |
+          docker ps
+
+      - name: Test Application
+        run: |
+          sleep 5
+          curl --fail http://localhost:8080
+
+      - name: Show Container Logs
+        if: always()
+        run: |
+          docker logs myapp-container
