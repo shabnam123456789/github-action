@@ -1,0 +1,47 @@
+name: Payment Service Deployment
+
+on:
+  repository_dispatch:
+    types:
+      - deploy-payment
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout deployment repo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Connect to EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ap-south-1 \
+            --name ecommerce-cluster
+
+      - name: Deploy using Helm
+        run: |
+          helm upgrade --install payment-service \
+            ./helm/payment-service \
+            --namespace ecommerce \
+            --create-namespace \
+            --set image.repository=${{ secrets.ECR_REGISTRY }}/payment-service \
+            --set image.tag=${{ github.event.client_payload.image_tag }} \
+            --wait \
+            --timeout 5m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status \
+            deployment/payment-service \
+            -n ecommerce
