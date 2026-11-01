@@ -1,0 +1,14 @@
+Name: List the FIles
+on:
+  workflow_dispatch:
+jobs:
+  build:
+  runs-on: self-hosted
+    steps:
+	  - name: checkout
+	    uses: action/checkout@v4
+	  - name:listing
+	    run: |
+	       echo"listing the files"
+	       ls -lrth
+	  
