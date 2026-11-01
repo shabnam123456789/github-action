@@ -1,0 +1,75 @@
+name: Docker Build Run with Artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate Image Tag
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE_TAG="${{ github.run_number }}-$SHORT_SHA"
+
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+
+          echo "Image tag: $IMAGE_TAG"
+
+      - name: Build Docker Image
+        run: |
+          docker build -t myapp:${{ env.IMAGE_TAG }} .
+
+      - name: Show Docker Images
+        run: |
+          docker images
+
+      - name: Create Artifact
+        run: |
+          mkdir -p artifact
+
+          echo "IMAGE_NAME=myapp" > artifact/image-info.txt
+          echo "IMAGE_TAG=${{ env.IMAGE_TAG }}" >> artifact/image-info.txt
+          echo "ENVIRONMENT=${{ inputs.environment }}" >> artifact/image-info.txt
+          echo "COMMIT_SHA=${{ github.sha }}" >> artifact/image-info.txt
+
+          cat artifact/image-info.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-build-info
+          path: artifact/image-info.txt
+
+  deploy-test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-build-info
+          path: artifact
+
+      - name: Read Artifact
+        run: |
+          echo "Artifact received from build job:"
+          cat artifact/image-info.txt
