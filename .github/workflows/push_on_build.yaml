@@ -1,0 +1,85 @@
+name: PUSH AND BUILD
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "main/paymentservice/**"
+
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+    paths:
+      - "main/paymentservice/**"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build and test with Maven
+        working-directory: main/paymentservice
+        run: mvn --batch-mode clean verify
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paymentservice-${{ github.sha }}
+          path: main/paymentservice/target/*.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  build-and-deploy-container:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: paymentservice-${{ github.sha }}
+          path: main/paymentservice/target
+
+      - name: Build Docker image
+        working-directory: main/paymentservice
+        run: |
+          docker build \
+            -t paymentservice:${{ github.sha }} \
+            -t paymentservice:latest \
+            .
+
+      - name: Stop existing container
+        run: |
+          docker rm -f paymentservice || true
+
+      - name: Run Docker container
+        run: |
+          docker run -d \
+            --name paymentservice \
+            -p 8080:8080 \
+            paymentservice:${{ github.sha }}
+
+      - name: Verify container
+        run: |
+          docker ps
+          docker logs paymentservice
