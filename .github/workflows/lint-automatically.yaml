@@ -1,0 +1,55 @@
+name: Code Linting
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "payment-services/**"
+
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - "payment-services/**"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Maven Checkstyle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: payment-services
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: payment-services/pom.xml
+
+      - name: Run Checkstyle
+        run: |
+          echo "Running Java code linting..."
+          mvn --batch-mode checkstyle:check
