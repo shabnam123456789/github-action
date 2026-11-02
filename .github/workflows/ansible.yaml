@@ -1,0 +1,54 @@
+name: Run Ansible Playbook
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ansible/**"
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select environment"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - qa
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ansible-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  run-ansible:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Run Ansible Playbook
+        working-directory: ansible
+        run: |
+          ansible-playbook \
+            -i inventory.ini \
+            deploy.yml
