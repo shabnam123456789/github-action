@@ -1,0 +1,73 @@
+Name: Genrateand release and upload asset
+on:
+  push:
+    branches:
+	  - main
+	  - "release /**"
+  pull_request:
+    branches:
+	  - main
+	  - "release / **"
+	types:
+	 - opened
+	 - synchronized
+	 - reopened
+  workflow_dispatch:
+    inputs:
+	  environment:
+	    description: "enter the environemnt"
+	    type: string
+		required: true
+	    default:dev
+	    option:
+		 - dev
+		 - prod
+		 - qa
+	  version:
+	    description:"enter the verison"
+		required: true
+		types: string
+		default: 'latest'
+  permission:
+    content: read
+	id_token: write
+	  
+  jobs:
+    build:
+	runs-on: unbuntu-latest
+	steps:
+	  - name: checkout
+	    uses: action/checkout@v4
+		run: |
+		 echo" checking out the repocode"
+	  - name: setup nodejs
+	    uses: action/setup-node@v4
+		with:
+		  node-version: 20
+		  cache: npm
+	  - name: install dependencies
+	    run: npm ci
+	  - name : test
+	    run: npm test
+	  - name : build
+	    run: npm run build 
+		cache: npm
+	  - name: create asset
+	    run :
+		 tar- czf aaplication-${{github. ref.name}}-${{github.sha}}.tar.gd dist/
+	  - name : release 
+	    env:
+		  GITHUB_TOKEN = ${{secret}}
+	    run: | 
+		  echo "creating release an upload the asset"
+		  gh release create "${{ github.ref_name }}" \
+            "application-${{ github.ref_name }}.tar.gz" \
+            --title "Release ${{ github.ref_name }}" \
+            --generate-notes
+		  
+	  
+		 
+	   
+	  
+	   
+	  
